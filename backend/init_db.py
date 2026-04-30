@@ -10,7 +10,7 @@ c.execute("DROP TABLE IF EXISTS foods")
 c.execute("CREATE TABLE foods (id INTEGER PRIMARY KEY, name TEXT, price INTEGER, image TEXT)")
 
 c.execute("DROP TABLE IF EXISTS orders")
-c.execute("CREATE TABLE orders (id INTEGER PRIMARY KEY, user TEXT, items TEXT)")
+c.execute("CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, items TEXT, status TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)")
 
 c.execute("INSERT INTO users VALUES (NULL, 'admin', '123')")
 

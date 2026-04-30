@@ -14,7 +14,8 @@ def admin_required(f):
     @jwt_required()
     @wraps(f)
     def decorated(*args, **kwargs):
-        if get_jwt_identity() != 'admin':
+        user_id = get_jwt_identity()
+        if user_id != 1:
             return jsonify({"msg": "Admin only"}), 403
         return f(*args, **kwargs)
     return decorated
@@ -66,7 +67,7 @@ def login():
     if not user:
         return jsonify({"msg": "Sai tài khoản"}), 401
 
-    token = create_access_token(identity=user["username"])
+    token = create_access_token(identity=user["id"], additional_claims={"username": user["username"]})
     return jsonify(access_token=token, username=user["username"])
 
 # FOODS
@@ -98,13 +99,13 @@ def add_food():
 @app.route("/order", methods=["POST"])
 @jwt_required()
 def order():
-    user = get_jwt_identity()
+    user_id = get_jwt_identity()
     data = request.json
 
     db = get_db()
     db.execute(
-        "INSERT INTO orders (user, items) VALUES (?, ?)",
-        (user, json.dumps(data["cart"]))
+        "INSERT INTO orders (user_id, items, status) VALUES (?, ?, ?)",
+        (user_id, json.dumps(data["cart"]), "pending")
     )
     db.commit()
 
@@ -115,12 +116,17 @@ def order():
 @jwt_required()
 def get_orders():
     db = get_db()
-    user = get_jwt_identity()
+    user_id = get_jwt_identity()
 
-    if user == 'admin':
-        orders = db.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+    if user_id == 1:
+        orders = db.execute(
+            "SELECT o.*, u.username as user FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"
+        ).fetchall()
     else:
-        orders = db.execute("SELECT * FROM orders WHERE user=? ORDER BY id DESC", (user,)).fetchall()
+        orders = db.execute(
+            "SELECT o.*, u.username as user FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.user_id=? ORDER BY o.id DESC",
+            (user_id,)
+        ).fetchall()
 
     return jsonify([dict(o) for o in orders])
 
