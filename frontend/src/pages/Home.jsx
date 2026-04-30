@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api";
+import { addToCart } from "../utils/useCart";
 
 import Skeleton from "../components/Skeleton";
 import Banner from "../components/Banner";
@@ -17,6 +18,7 @@ const categories = [
 export default function Home() {
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     API.get("/foods").then(res => {
@@ -25,31 +27,11 @@ export default function Home() {
     });
   }, []);
 
-  const addToCart = (cartItem) => {
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    
-    // Migrate old cart format (array of ids) to new format if needed
-    if (cart.length > 0 && typeof cart[0] === "number") {
-      const newCart = {};
-      cart.forEach(id => {
-        newCart[id] = (newCart[id] || 0) + 1;
-      });
-      cart = Object.entries(newCart).map(([id, quantity]) => ({id: parseInt(id), quantity}));
-      localStorage.setItem("cart", JSON.stringify(cart));
-    }
-    
-    const { id, quantity } = cartItem;
-    const existingIndex = cart.findIndex(item => item.id === id);
-    if (existingIndex > -1) {
-      cart[existingIndex].quantity += quantity;
-    } else {
-      cart.push({ id, quantity });
-    }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("storage"));
+  const handleAddToCart = (cartItem) => {
+    // Sử dụng utility useCart - đã có migrate tự động
+    addToCart(cartItem);
   };
 
-  const [selectedCategory, setSelectedCategory] = useState(null);
   // Hiển tất cả món (chưa có category trong DB)
   const filteredFoods = foods;
 
@@ -108,11 +90,11 @@ export default function Home() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {filteredFoods.map(f => (
-                <FoodCard key={f.id} food={f} onAdd={addToCart} />
+                <FoodCard key={f.id} food={f} onAdd={handleAddToCart} />
               ))}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination - placeholder (chưa có backend pagination) */}
             {filteredFoods.length > 0 && (
               <div className="flex justify-center mt-12 space-x-2">
                 <button className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-green-500 hover:text-white transition">

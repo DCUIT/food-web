@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import Toast from '../components/Toast';
+import { getCart } from '../utils/useCart';
+import { formatPrice } from '../utils/formatPrice';
 
 export default function Payment() {
   const [cart, setCart] = useState([]);
@@ -14,11 +16,14 @@ export default function Payment() {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
+    // Sử dụng utility useCart - đã có migrate tự động
+    const cartData = getCart();
+    
     if (cartData.length === 0) {
       navigate('/cart');
       return;
     }
+    
     API.get('/foods').then(res => {
       const cartItems = cartData.map(item => {
         const food = res.data.find(f => f.id === item.id);
@@ -63,8 +68,6 @@ export default function Payment() {
   };
 
   if (cart.length === 0) return null;
-
-  const formatPrice = (price) => Number(price).toLocaleString('vi-VN') + 'đ';
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">

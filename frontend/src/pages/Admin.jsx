@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import API from "../api";
+import { formatCurrency as formatPrice } from "../utils/formatPrice";
+import { parseItems, getStatusBadge, ORDER_STATUSES } from "../utils/parseOrder";
+import OrderModal from "../components/OrderModal";
 
 const TABS = { FOODS: "foods", ORDERS: "orders", STATS: "stats" };
 
@@ -89,22 +92,14 @@ export default function Admin() {
     setEditingId(null);
   }
 
-  const formatPrice = (price) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  const parseItems = (itemsStr) => { try { return JSON.parse(itemsStr); } catch { return []; } };
-
   async function updateOrderStatus(orderId, newStatus) {
     try {
       await API.put(`/orders/${orderId}`, { status: newStatus }, authHeader);
       fetchOrders();
+      setSelectedOrder(null);
       setSuccess(`Đã cập nhật trạng thái đơn #${orderId}`);
     } catch (err) { setError("Cập nhật thất bại"); }
   }
-
-  const getStatusBadge = (status) => {
-    const colors = { pending: "bg-yellow-100 text-yellow-800", paid: "bg-green-100 text-green-800", cancelled: "bg-red-100 text-red-800", refunded: "bg-gray-100 text-gray-800" };
-    const labels = { pending: "Chờ xử lý", paid: "Đã thanh toán", cancelled: "Đã hủy", refunded: "Đã hoàn tiền" };
-    return <span className={`px-2 py-1 rounded text-xs font-semibold ${colors[status] || colors.pending}`}>{labels[status] || status}</span>;
-  };
 
   return (
     <div className="max-w-5xl mx-auto p-4">
@@ -180,7 +175,7 @@ export default function Admin() {
                 const items = parseItems(order.items);
                 const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
                 return (
-<div key={order.id} onClick={() => setSelectedOrder(order)} className="border rounded p-4 dark:border-gray-600 cursor-pointer hover:border-blue-400 transition-all">
+                  <div key={order.id} onClick={() => setSelectedOrder(order)} className="border rounded p-4 dark:border-gray-600 cursor-pointer hover:border-blue-400 transition-all">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-semibold text-blue-600">Đơn hàng #{order.id}</div>
@@ -226,61 +221,11 @@ export default function Admin() {
       )}
 
       {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-              <h3 className="font-bold text-lg">Chi tiết đơn hàng #{selectedOrder.id}</h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div><div className="text-sm text-gray-500">Khách hàng:</div><div className="font-semibold">{selectedOrder.user}</div></div>
-              <div><div className="text-sm text-gray-500">Trạng thái:</div>{getStatusBadge(selectedOrder.status)}</div>
-              <div><div className="text-sm text-gray-500">Ngày đặt:</div><div>{selectedOrder.created_at || "Không có thông tin"}</div></div>
-              <div>
-                <div className="text-sm text-gray-500 mb-2">Danh sách món:</div>
-                <div className="space-y-2">
-                  {parseItems(selectedOrder.items).map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center border-b pb-2">
-                      <div><div className="font-medium">{item.name}</div><div className="text-sm text-gray-500">x{item.quantity}</div></div>
-                      <div className="font-semibold">{formatPrice(item.price * item.quantity)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Tổng cộng:</span>
-                  <span className="text-yellow-600">{formatPrice(parseItems(selectedOrder.items).reduce((sum, item) => sum + item.price * item.quantity, 0))}</span>
-                </div>
-              </div>
-{/* BUTTONS FOR ALL STATUSES */}
-              <div className="border-t pt-4">
-                <div className="text-sm text-gray-500 mb-2">Hành động:</div>
-                <div className="flex flex-wrap gap-2">
-                  {/* Pending: Show 2 buttons */}
-                  {selectedOrder.status === "pending" && (
-                    <>
-                      <button onClick={() => updateOrderStatus(selectedOrder.id, "paid")} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded font-semibold">✓ Đánh dấu đã thanh toán</button>
-                      <button onClick={() => updateOrderStatus(selectedOrder.id, "cancelled")} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded font-semibold">✕ Hủy đơn</button>
-                    </>
-                  )}
-                  {/* Paid: Show refund button */}
-                  {selectedOrder.status === "paid" && (
-                    <button onClick={() => updateOrderStatus(selectedOrder.id, "refunded")} className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded font-semibold">↩ Hoàn tiền</button>
-                  )}
-                  {/* Cancelled/Refunded: Show message */}
-                  {(selectedOrder.status === "cancelled" || selectedOrder.status === "refunded") && (
-                    <div className="text-gray-500 text-center py-2">Đơn hàng đã {selectedOrder.status === "cancelled" ? "bị hủy" : "được hoàn tiền"}</div>
-                  )}
-                  {/* Close button */}
-                  <button onClick={() => setSelectedOrder(null)} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded mt-2">Đóng</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <OrderModal 
+        order={selectedOrder} 
+        onClose={() => setSelectedOrder(null)} 
+        onUpdateStatus={updateOrderStatus}
+      />
     </div>
   );
 }

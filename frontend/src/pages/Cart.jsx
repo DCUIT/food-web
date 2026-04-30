@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import API from "../api";
+import { getCart, removeFromCart, updateCartQuantity } from "../utils/useCart";
+import { formatPrice } from "../utils/formatPrice";
 
-// Trang giỏ hàng, hiển thị danh sách món với số lượng, tổng tiền, +/- nút, xóa
+// Trang giỏ hàng - sử dụng utility functions
 export default function Cart() {
   const [items, setItems] = useState([]);
 
@@ -11,22 +13,8 @@ export default function Cart() {
 
   function reloadCart() {
     try {
-      const cartString = localStorage.getItem("cart");
-      let cart = [];
-      if (cartString) {
-        cart = JSON.parse(cartString);
-      }
-      
-      // Migrate old format if needed
-      if (cart.length > 0 && typeof cart[0] === "number") {
-        const newCart = {};
-        cart.forEach(id => newCart[id] = (newCart[id] || 0) + 1);
-        cart = Object.entries(newCart).map(([id, quantity]) => ({id: parseInt(id), quantity}));
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.dispatchEvent(new Event("storage"));
-        reloadCart();
-        return;
-      }
+      // Sử dụng utility useCart - đã có migrate tự động
+      const cart = getCart();
       
       if (cart.length === 0) {
         setItems([]);
@@ -34,11 +22,10 @@ export default function Cart() {
       }
       
       API.get("/foods").then(res => {
-        const cartItems = cart.filter(item => item.id && item.quantity);
         const itemsWithQty = res.data
-          .filter(f => cartItems.some(item => item.id === f.id))
+          .filter(f => cart.some(item => item.id === f.id))
           .map(f => {
-            const cartItem = cartItems.find(item => item.id === f.id);
+            const cartItem = cart.find(item => item.id === f.id);
             return { ...f, quantity: cartItem.quantity };
           });
         setItems(itemsWithQty);
@@ -47,51 +34,21 @@ export default function Cart() {
       });
     } catch (e) {
       console.error("Cart error:", e);
-      localStorage.removeItem("cart");
       setItems([]);
     }
   }
 
-  function removeItem(id) {
-    try {
-      const cartString = localStorage.getItem("cart");
-      if (!cartString) return;
-      let cart = JSON.parse(cartString);
-      cart = cart.filter(item => item.id !== id);
-      localStorage.setItem("cart", JSON.stringify(cart));
-      window.dispatchEvent(new Event("storage"));
-      reloadCart();
-    } catch (e) {
-      localStorage.removeItem("cart");
-      reloadCart();
-    }
+  function handleRemoveItem(id) {
+    removeFromCart(id);
+    reloadCart();
   }
 
-  function updateQuantity(id, newQty) {
-    if (newQty <= 0) {
-      removeItem(id);
-      return;
-    }
-    try {
-      const cartString = localStorage.getItem("cart");
-      if (!cartString) return;
-      let cart = JSON.parse(cartString);
-      const index = cart.findIndex(item => item.id === id);
-      if (index > -1) {
-        cart[index].quantity = newQty;
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.dispatchEvent(new Event("storage"));
-        reloadCart();
-      }
-    } catch (e) {
-      localStorage.removeItem("cart");
-      reloadCart();
-    }
+  function handleUpdateQuantity(id, newQty) {
+    updateCartQuantity(id, newQty);
+    reloadCart();
   }
 
   const total = items.reduce((sum, i) => sum + (i.price * i.quantity || 0), 0);
-
-  const formatPrice = (price) => Number(price).toLocaleString("vi-VN") + '₫';
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 min-h-screen">
@@ -131,7 +88,7 @@ export default function Cart() {
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center space-x-2">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                           className="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center font-bold text-gray-700 transition"
                         >
                           -
@@ -140,7 +97,7 @@ export default function Cart() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                           className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center font-bold transition"
                         >
                           +
@@ -155,7 +112,7 @@ export default function Cart() {
                     </td>
                     <td className="p-4 text-right">
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => handleRemoveItem(item.id)}
                         className="text-red-500 hover:text-red-700 font-bold hover:underline transition text-sm"
                       >
                         Xóa
@@ -182,4 +139,3 @@ export default function Cart() {
     </div>
   );
 }
-

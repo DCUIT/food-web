@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import API from "../api";
+import { parseItems, calculateOrderTotal, getStatusBadge } from "../utils/parseOrder";
+import { formatCurrency as formatPrice } from "../utils/formatPrice";
+// Sử dụng utility thay cho code trùng lặp
 
 export default function Menu() {
   const [orders, setOrders] = useState([]);
@@ -18,18 +21,6 @@ export default function Menu() {
       setLoading(false);
     }
   }, [token]);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  };
-
-  const parseItems = (itemsStr) => {
-    try {
-      return JSON.parse(itemsStr);
-    } catch {
-      return [];
-    }
-  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -60,7 +51,7 @@ export default function Menu() {
           <div className="max-w-3xl mx-auto space-y-4">
             {orders.map(order => {
               const items = parseItems(order.items);
-              const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              const total = calculateOrderTotal(items);
               return (
                 <div key={order.id} className="bg-white rounded-2xl shadow-sm p-6">
                   <div className="flex justify-between items-center mb-4 border-b pb-3">

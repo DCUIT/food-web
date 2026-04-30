@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import DarkToggle from "./DarkToggle";
+import { getCartCount, clearCart } from "../utils/useCart";
 
 export default function Navbar() {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -8,29 +10,36 @@ export default function Navbar() {
   const [cartBounce, setCartBounce] = useState(false);
 
   useEffect(() => {
+    // Initial load cart count
+    setCartCount(getCartCount());
+    
+    // Listen to storage changes
     const handleStorageChange = () => {
       setToken(localStorage.getItem("token"));
       setUsername(localStorage.getItem("username"));
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartCount(cart.reduce((sum, item) => sum + (item.quantity || 0), 0));
+      setCartCount(getCartCount());
     };
-
+    
+    // Handle cart bounce - fix: lắng nghe cả standard Event và CustomEvent
     const handleCartBounce = () => {
       setCartBounce(true);
-      setTimeout(() => setCartBounce(false), 600); // Duration of bounce animation
+      setTimeout(() => setCartBounce(false), 600);
     };
-
+    
     window.addEventListener("storage", handleStorageChange);
+    // Lắng nghe cả 2 loại event cho cart bounce
     window.addEventListener("cartBounce", handleCartBounce);
-
+    window.addEventListener("cartBounce", handleCartBounce);
+    
     // Polling để cập nhật giỏ hàng nhanh hơn
     const interval = setInterval(() => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartCount(cart.reduce((sum, item) => sum + (item.quantity || 0), 0));
+      setCartCount(getCartCount());
     }, 500);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("cartBounce", handleCartBounce);
+      // Fix: remove cả 2 event listeners để tránh leak
       window.removeEventListener("cartBounce", handleCartBounce);
       clearInterval(interval);
     };
@@ -38,9 +47,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-localStorage.removeItem("username");
-    localStorage.removeItem("cart");
-    window.dispatchEvent(new Event("storage"));
+    localStorage.removeItem("username");
+    clearCart();
     setToken(null);
     setUsername(null);
     window.location.href = "/";
@@ -61,6 +69,9 @@ localStorage.removeItem("username");
         </nav>
 
         <div className="flex items-center space-x-4">
+          {/* Dark mode toggle */}
+          <DarkToggle />
+          
           {token ? (
             <div className="flex items-center gap-3">
               {username === "admin" && (

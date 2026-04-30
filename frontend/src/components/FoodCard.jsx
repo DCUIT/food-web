@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Toast from "./Toast";
+import { formatPrice } from "../utils/formatPrice";
 
 export default function FoodCard({ food, onAdd }) {
   const [quantity, setQuantity] = useState(1);
@@ -8,14 +9,8 @@ export default function FoodCard({ food, onAdd }) {
   const [toastMessage, setToastMessage] = useState("");
 
   const handleAddToCart = () => {
-    if (!localStorage.getItem('token')) {
-      localStorage.removeItem('cart');
-      window.dispatchEvent(new Event('storage'));
-      alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-      window.location.href = '/login';
-      return;
-    }
-
+    // Guest có thể thêm vào giỏ - không bắt buộc login
+    // Chỉ check login khi thanh toán
     onAdd({ id: food.id, quantity });
 
     // Show toast
@@ -28,8 +23,8 @@ export default function FoodCard({ food, onAdd }) {
       setButtonText(`Thêm ${quantity} vào giỏ`);
     }, 2000);
 
-    // Trigger cart icon bounce
-    window.dispatchEvent(new CustomEvent('cartBounce'));
+    // Trigger cart icon bounce - sử dụng đúng event type
+    window.dispatchEvent(new Event("cartBounce"));
 
     setQuantity(1); // Reset after add
   };
@@ -45,7 +40,7 @@ export default function FoodCard({ food, onAdd }) {
       </div>
       <div className="p-5">
         <h3 className="font-bold text-lg text-gray-800">{food.name}</h3>
-        <p className="text-orange-500 font-bold text-xl my-2">{Number(food.price).toLocaleString("vi-VN")}đ</p>
+        <p className="text-orange-500 font-bold text-xl my-2">{formatPrice(food.price)}</p>
 
         <div className="flex items-center justify-center space-x-3 mb-4 p-2 bg-gray-50 rounded-lg">
           <button
