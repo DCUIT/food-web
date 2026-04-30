@@ -126,12 +126,15 @@ def get_orders():
     user_id = get_jwt_identity()
 
     if str(user_id) == "1":
+        # Admin sees all orders
         orders = db.execute(
             "SELECT o.*, u.username as user FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"
         ).fetchall()
     else:
+        # Regular user only sees their own orders
         orders = db.execute(
-            "SELECT o.*, u.username as user FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"
+            "SELECT o.*, u.username as user FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.user_id = ? ORDER BY o.id DESC",
+            (user_id,)
         ).fetchall()
 
     return jsonify([dict(o) for o in orders])

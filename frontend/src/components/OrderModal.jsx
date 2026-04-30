@@ -1,5 +1,5 @@
 // OrderModal component - Tách ra từ Admin.jsx để tránh inline modal quá lớn
-import { getStatusBadge, parseItems, calculateOrderTotal, ORDER_STATUSES } from "../utils/parseOrder";
+import { getStatusBadge, parseItems, calculateOrderTotal, ORDER_STATUSES } from "../utils/parseOrder.jsx";
 import { formatCurrency as formatPrice } from "../utils/formatPrice";
 
 export default function OrderModal({ order, onClose, onUpdateStatus }) {

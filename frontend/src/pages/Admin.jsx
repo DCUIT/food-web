@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api";
 import { formatCurrency as formatPrice } from "../utils/formatPrice";
-import { parseItems, getStatusBadge, ORDER_STATUSES } from "../utils/parseOrder";
+import { parseItems, getStatusBadge, ORDER_STATUSES } from "../utils/parseOrder.jsx";
 import OrderModal from "../components/OrderModal";
 
 const TABS = { FOODS: "foods", ORDERS: "orders", STATS: "stats" };

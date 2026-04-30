@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api";
-import { parseItems, calculateOrderTotal, getStatusBadge } from "../utils/parseOrder";
+import { parseItems, calculateOrderTotal } from "../utils/parseOrder.jsx";
 import { formatCurrency as formatPrice } from "../utils/formatPrice";
 // Sử dụng utility thay cho code trùng lặp
 
